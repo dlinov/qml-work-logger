@@ -1,7 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
 import com.nokia.extras 1.1
-//import QtMobility.systeminfo 1.2
 import 'components'
 import 'delegates'
 import 'js/core.js' as Core
@@ -53,8 +52,7 @@ Page {
             subTitle: qsTr("id: %1; created: %2; started: %3; finished: %4")
                 .arg(model.id).arg(model.created).arg(model.started).arg(model.finished)
             onClicked: {
-                console.log(qsTr("%1 %2").arg(model.id).arg(model.name));
-                switchToPage("ProjectInfoPage.qml");
+                switchToPage("ProjectInfoPage.qml", {itemId: model.id});
             }
         }
         clip: true
@@ -67,11 +65,12 @@ Page {
     AddProjectPage {
         id: addProjectPage
         title: qsTr("New project")
-        onAccepted: Core.insertProject({
-                                           name: addProjectPage.projectName,
-                                           description: addProjectPage.projectDescription
-                                       }
-                                       );
+        onAccepted: {
+            Core.insertProject({name: addProjectPage.projectName,description: addProjectPage.projectDescription});
+            refreshDataModel();
+            addProjectPage.projectName = "";
+            addProjectPage.projectDescription = "";
+        }
     }
 
     function projectData(model) {
@@ -79,32 +78,23 @@ Page {
         var dbData = Core.readProjects();
         for (var j = 0; j < dbData.length; j++) {
             model.append({
-                             id: dbData[j].id,
-                             name: dbData[j].name,
-                             created: dbData[j].created,
-                             started: dbData[j].started,
-                             finished: dbData[j].finished
-                         });
+                 id: dbData[j].id,
+                 name: dbData[j].name,
+                 created: dbData[j].created,
+                 started: dbData[j].started,
+                 finished: dbData[j].finished
+             });
         }
     }
 
-//    onStatusChanged: {
-//        if (status === PageStatus.Activating) {
-//            projectView.model = 0;
-//            projectData(projectListModel);
-//            projectView.model = projectListModel;
-//        }
-//    }
-    Component.onCompleted: {
-        // Initialize the database
+    function refreshDataModel() {
         Core.openDB();
         projectView.model = 0;
         projectData(projectListModel);
         projectView.model = projectListModel;
-        //Storage.initialize();
-        // Sets a value in the database
-        //Storage.setSetting("mySetting","myValue");
-        // Sets the textDisplay element's text to the value we just set
-        //textDisplay.text = "The value of mySetting is:\n" + Storage.getSetting("mySetting");
+    }
+
+    Component.onCompleted: {
+        refreshDataModel();
     }
 }

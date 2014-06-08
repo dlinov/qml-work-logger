@@ -35,6 +35,7 @@
 .pragma library
 var _db;
 var TABLE_PROJECT = "project";
+var TABLE_TASK = "task";
 var DB_NAME = "WorkLogger"
 
 function openDB() {
@@ -51,18 +52,25 @@ function createTable() {
                             description TEXT,\
                             created DATE,\
                             started DATE,\
-                            finished DATE)";
+                            finished DATE);";
+                        tx.executeSql(query);
+                        query = "\
+                            CREATE TABLE IF NOT EXISTS "+TABLE_TASK+
+                            " (id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                            name TEXT,\
+                            description TEXT,\
+                            created DATE,\
+                            project_id DATE,\
+                            FOREIGN KEY(project_id) REFERENCES "+TABLE_PROJECT+"(id));";
                         tx.executeSql(query);
                     });
 }
 
-function dropTable()
-{
-    _db.transaction(
-                function(tx){
-                    tx.executeSql("DROP TABLE IF EXISTS "+TABLE_PROJECT);
-                }
-                )
+function dropTables() {
+    _db.transaction(function(tx){
+                        tx.executeSql("DROP TABLE IF EXISTS "+TABLE_TASK);
+                        tx.executeSql("DROP TABLE IF EXISTS "+TABLE_PROJECT);
+    });
 }
 
 function insertProject(project) {
@@ -109,163 +117,24 @@ function readProject(id) {
     return item;
 }
 
-//.pragma library
+function readTasks() {
+    openDB();
+    var data = [];
+    _db.readTransaction(function(tx){
+                            var rs = tx.executeSql("SELECT * FROM "+TABLE_TASK);
+                            for (var i = 0; i < rs.rows.length; i++) {
+                                data[i] = rs.rows.item(i);
+                            }
+                        });
+    return data;
+}
 
-//var _db;
-
-//function openDB() {
-//    _db = openDatabaseSync("TodoDB","1.0","the Todo related Database",1000000);
-//    createTable();
-//}
-
-//function createTable(){
-//    _db.transaction(
-//                function(tx){
-//                    tx.executeSql("CREATE TABLE IF NOT EXISTS todo (id INTEGER PRIMARY KEY AUTOINCREMENT, box INTEGER, done TEXT, title TEXT, note TEXT, modified TEXT)");
-//                }
-//                )
-//}
-
-//function dropTable()
-//{
-//    _db.transaction(
-//                function(tx){
-//                    tx.executeSql("DROP TABLE IF EXISTS todo");
-//                }
-//                )
-//}
-
-//function readTodos()
-//{
-//    var data = [];
-//    _db.readTransaction(
-//                function(tx){
-//                    var rs = tx.executeSql("SELECT * FROM todo ORDER BY modified DESC");
-//                    for (var i=0; i< rs.rows.length; i++) {
-//                        data[i] = rs.rows.item(i);
-//                    }
-
-//                }
-//                )
-//    return data;
-//}
-
-//function updateTodo(todoItem)
-//{
-//    _db.transaction(
-//                function(tx){
-//                    tx.executeSql("UPDATE todo SET BOX = ? , done = ?, \
-//                                  title = ?, note = ?, modified = ?  \
-//                                  WHERE id = ?", [todoItem.box, todoItem.done, todoItem.title,
-//                                                  todoItem.note, todoItem.modified, todoItem.id]);
-//                }
-//                )
-//}
-
-
-//function deleteTodo(id)
-//{
-//    _db.transaction(
-//                function(tx){
-//                    tx.executeSql("DELETE FROM todo WHERE id = ?", id);
-//                }
-//                )
-//}
-
-//function createTodo(todoItem)
-//{
-//    _db.transaction(
-//                function(tx){
-//                    tx.executeSql("INSERT INTO todo (box, done, title, note, modified) VALUES(?,?,?,?,?)",[todoItem.box, todoItem.done, todoItem.title, todoItem.note, todoItem.modified]);
-//                }
-//                )
-//}
-
-
-//function readTodoBox(model, box)
-//{
-//    model.clear()
-//    _db.readTransaction(
-//                function(tx){
-//                    var rs = tx.executeSql("SELECT * FROM todo WHERE box =? ORDER BY modified DESC", [box]);
-//                    for (var i=0; i< rs.rows.length; i++) {
-//                        model.append(rs.rows.item(i))
-//                    }
-//                }
-//                )
-//}
-
-//function readTodoItem(todoId) {
-//    var data = {}
-//    _db.readTransaction(
-//                function(tx){
-//                    var rs = tx.executeSql("SELECT * FROM todo WHERE id=?", [todoId])
-//                    if(rs.rows.length === 1) {
-//                        data = rs.rows.item(0)
-//                    }
-//                }
-//                )
-//    return data;
-//}
-
-//function printObject(o)
-//{
-//    print('---')
-//    print(Object.keys(o))
-//    for(var key in o) {
-//        print("  " + key +"="+o[key])
-//    }
-
-//}
-
-//function countBox(boxId)
-//{
-//    var data = 0;
-//    _db.readTransaction(
-//                function(tx){
-//                    var rs = tx.executeSql("SELECT count(*) FROM todo WHERE box = ?",[boxId]);
-//                    if(rs.rows.length === 1) {
-//                        data = rs.rows.item(0)["count(*)"]
-//                    }
-
-//                }
-//                )
-//    return data;
-//}
-
-//function createBatchTodos(data)
-//{
-//    _db.transaction(
-//                function(tx){
-//                    for(var i=0; i<data.length; i++) {
-//                        var item = data[i]
-//                        tx.executeSql("INSERT INTO todo (box, done, title, note, modified) VALUES(?,?,?,?,?)",[item.box, item.done, item.title, item.note, item.modified]);
-//                    }
-//                }
-//                )
-//}
-
-//function clearArchive(model)
-//{
-//    model.clear()
-//    _db.transaction(
-//                function(tx){
-//                    tx.executeSql("DELETE FROM todo WHERE box = 4");
-//                }
-//                )
-//}
-
-//function updateArchive(box)
-//{
-//    _db.transaction(
-//                function(tx){
-//                    tx.executeSql("UPDATE todo SET box = 4 WHERE done = 'true' AND box=?",box);
-//                }
-//                )
-//}
-
-//function defaultItem()
-//{
-//    return {box: 0, done: false, title: "", note: "", modified: new Date()}
-//}
-
+function readTasksCountForProject(projectId) {
+    openDB();
+    var rowsCount = 0;
+    _db.readTransaction(function(tx){
+                            rowsCount = tx.executeSql("SELECT COUNT(*) as count FROM "+TABLE_TASK+" WHERE project_id=?", projectId);
+                        });
+    // TODO: remove .count
+    return rowsCount.rows.item(0).count;
+}

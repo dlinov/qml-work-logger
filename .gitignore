@@ -26,3 +26,8 @@ Makefile*
 # QtCreator
 
 *.autosave
+
+# deb-packages
+
+*.deb
+*.changes

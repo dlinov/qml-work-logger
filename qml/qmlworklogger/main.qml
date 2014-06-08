@@ -37,8 +37,8 @@ PageStackWindow {
         }
     }
 
-    function switchToPage(page) {
-        pageStack.push(Qt.resolvedUrl(page))
+    function switchToPage(page, params) {
+        pageStack.push(Qt.resolvedUrl(page), params);
     }
 
     function extendJavaScript() {

@@ -21,6 +21,7 @@ Sheet {
                 margins: 8
             }
         }
+
         TextField {
             id: projectName
             anchors {
@@ -28,6 +29,21 @@ Sheet {
                 right: parent.right
                 left: parent.left
                 margins: 8
+            }
+            placeholderText: "Please enter project name";
+
+            onTextChanged: {
+                if (errorHighlight) {
+                    errorHighlight = false;
+                }
+            }
+
+            onAccepted: {
+                if (projectDescription.text.length > 0) {
+                    projectDescription.focus = true;
+                } else {
+                    errorHighlight = true;
+                }
             }
         }
 
@@ -41,7 +57,8 @@ Sheet {
                 margins: 8
             }
         }
-        TextField {
+
+        TextArea {
             id: projectDescription
             anchors {
                 top: projectDescriptionLabel.bottom
