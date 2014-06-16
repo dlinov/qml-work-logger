@@ -36,6 +36,7 @@
 var _db;
 var TABLE_PROJECT = "project";
 var TABLE_TASK = "task";
+var TABLE_TASK_PART = "task_part"
 var DB_NAME = "WorkLogger"
 
 function openDB() {
@@ -45,96 +46,213 @@ function openDB() {
 
 function createTable() {
     _db.transaction(function(tx) {
-                        var query = "\
-                            CREATE TABLE IF NOT EXISTS "+TABLE_PROJECT+
-                            " (id INTEGER PRIMARY KEY AUTOINCREMENT, \
-                            name TEXT,\
-                            description TEXT,\
-                            created DATE,\
-                            started DATE,\
-                            finished DATE);";
-                        tx.executeSql(query);
-                        query = "\
-                            CREATE TABLE IF NOT EXISTS "+TABLE_TASK+
-                            " (id INTEGER PRIMARY KEY AUTOINCREMENT,\
-                            name TEXT,\
-                            description TEXT,\
-                            created DATE,\
-                            project_id DATE,\
-                            FOREIGN KEY(project_id) REFERENCES "+TABLE_PROJECT+"(id));";
-                        tx.executeSql(query);
-                    });
+        var query = "\
+            CREATE TABLE IF NOT EXISTS "+TABLE_PROJECT+
+            " (id INTEGER PRIMARY KEY AUTOINCREMENT, \
+            name TEXT,\
+            description TEXT,\
+            created DATE,\
+            started DATE,\
+            finished DATE);";
+        tx.executeSql(query);
+        query = "\
+            CREATE TABLE IF NOT EXISTS "+TABLE_TASK+
+            " (id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            name TEXT,\
+            description TEXT,\
+            created DATE,\
+            projectId INTEGER,\
+            FOREIGN KEY(projectId) REFERENCES "+TABLE_PROJECT+"(id));";
+        tx.executeSql(query);
+        query = "\
+            CREATE TABLE IF NOT EXISTS "+TABLE_TASK_PART+
+            " (id INTEGER PRIMARY KEY AUTOINCREMENT,\
+            started DATE,\
+            ended DATE,\
+            isLogged INTEGER,\
+            description TEXT,\
+            taskId INTEGER,\
+            FOREIGN KEY(taskId) REFERENCES "+TABLE_TASK+"(id));";
+        tx.executeSql(query);
+    });
 }
 
 function dropTables() {
-    _db.transaction(function(tx){
-                        tx.executeSql("DROP TABLE IF EXISTS "+TABLE_TASK);
-                        tx.executeSql("DROP TABLE IF EXISTS "+TABLE_PROJECT);
+    _db.transaction(function(tx) {
+        tx.executeSql("DROP TABLE IF EXISTS "+TABLE_TASK_PART);
+        tx.executeSql("DROP TABLE IF EXISTS "+TABLE_TASK);
+        tx.executeSql("DROP TABLE IF EXISTS "+TABLE_PROJECT);
     });
 }
 
 function insertProject(project) {
     openDB();
     _db.transaction(function(tx) {
-                        var query = "INSERT INTO "+TABLE_PROJECT+" (name, description, created, started, finished) \
+        var query = "INSERT INTO "+TABLE_PROJECT+" (name, description, created, started, finished) \
 VALUES (?, ?, ?, ?, ?)";
-                        var queryParams = [project.name, project.description, new Date(), null, null];
-                        tx.executeSql(query, queryParams);
+        var queryParams = [project.name, project.description, new Date(), null, null];
+        tx.executeSql(query, queryParams);
     });
 }
 
-function updateProject(id, project) {
+function updateProject(project) {
     openDB();
     _db.transaction(function(tx) {
-                        tx.executeSql("UPDATE "+TABLE_PROJECT+" SET name=?, description=?, \
-                                       created=?, started=?, finished=? WHERE id=?",
-                                      [project.name, project.description,
-                                       project.created, project.started, project.finished, project.id]);
-                    });
+        var query = "UPDATE "+TABLE_PROJECT+" SET name=?, description=?, created=?, started=?, finished=? WHERE id=?";
+        var queryParams = [project.name, project.description, project.created, project.started, project.finished, project.id];
+        tx.executeSql(query, queryParams);
+    });
 }
 
 function readProjects() {
     openDB();
     var data = [];
-    _db.readTransaction(function(tx){
-                            var rs = tx.executeSql("SELECT * FROM "+TABLE_PROJECT);
-                            for (var i = 0; i < rs.rows.length; i++) {
-                                data[i] = rs.rows.item(i);
-                            }
-                        });
+    _db.readTransaction(function(tx) {
+        var rs = tx.executeSql("SELECT * FROM "+TABLE_PROJECT);
+        for (var i = 0; i < rs.rows.length; i++) {
+            data[i] = rs.rows.item(i);
+        }
+    });
     return data;
 }
 
 function readProject(id) {
     openDB();
     var item = 0;
-    _db.readTransaction(function(tx){
-                            var rs = tx.executeSql("SELECT * FROM "+TABLE_PROJECT+" WHERE id=?", id);
-                            if (rs.rows.length === 1) {
-                                item = rs.rows.item(0);
-                            }
-                        });
+    _db.readTransaction(function(tx) {
+        var rs = tx.executeSql("SELECT * FROM "+TABLE_PROJECT+" WHERE id=?", id);
+        if (rs.rows.length === 1) {
+            item = rs.rows.item(0);
+        }
+    });
     return item;
+}
+
+function removeProject(id) {
+    openDB();
+    _db.transaction(function(tx) {
+        var rs = tx.executeSql("DELETE FROM "+TABLE_PROJECT+" WHERE id=?", id);
+    });
+}
+
+function insertTask(task) {
+    openDB();
+    _db.transaction(function(fx) {
+        var query = "INSERT INTO "+TABLE_TASK+" (name, description, created, projectId) \
+VALUES (?, ?, ?, ?, ?)";
+        var queryParams = [task.name, task.description, new Date(), task.projectId];
+        tx.executeSql(query, queryParams);
+    })
+}
+
+function updateTask(task) {
+    openDB();
+    _db.transaction(function(tx) {
+        var query = "UPDATE "+TABLE_TASK+" SET name=?, description=?, created=?, projectId=? WHERE id=?";
+        var queryParams = [task.name, task.description, task.created, task.projectId, task.id];
+        tx.executeSql(query, queryParams);
+    });
 }
 
 function readTasks() {
     openDB();
     var data = [];
-    _db.readTransaction(function(tx){
-                            var rs = tx.executeSql("SELECT * FROM "+TABLE_TASK);
-                            for (var i = 0; i < rs.rows.length; i++) {
-                                data[i] = rs.rows.item(i);
-                            }
-                        });
+    _db.readTransaction(function(tx) {
+        var rs = tx.executeSql("SELECT * FROM "+TABLE_TASK);
+        for (var i = 0; i < rs.rows.length; i++) {
+            data[i] = rs.rows.item(i);
+        }
+    });
     return data;
+}
+
+function readTask(id) {
+    openDB();
+    var item = 0;
+    _db.readTransaction(function(tx) {
+        var rs = tx.executeSql("SELECT * FROM "+TABLE_TASK+" WHERE id=?", id);
+        if (rs.rows.length === 1) {
+            item = rs.rows.item(0);
+        }
+    });
+    return item;
 }
 
 function readTasksCountForProject(projectId) {
     openDB();
     var rowsCount = 0;
-    _db.readTransaction(function(tx){
-                            rowsCount = tx.executeSql("SELECT COUNT(*) as count FROM "+TABLE_TASK+" WHERE project_id=?", projectId);
-                        });
-    // TODO: remove .count
+    _db.readTransaction(function(tx) {
+        rowsCount = tx.executeSql("SELECT COUNT(*) as count FROM "+TABLE_TASK+" WHERE projectId=?", projectId);
+    });
     return rowsCount.rows.item(0).count;
+}
+
+function removeTask(id) {
+    openDB();
+    // TODO: remove all task parts
+    _db.transaction(function(tx) {
+        var rs = tx.executeSql("DELETE FROM "+TABLE_TASK+" WHERE id=?", id);
+    });
+}
+
+function insertTaskPart(taskPart) {
+    openDB();
+    _db.transaction(function(fx) {
+        var query = "INSERT INTO "+TABLE_TASK_PART+" (started, ended, isLogged, description, taskId) \
+VALUES (?, ?, ?, ?, ?)";
+        var queryParams = [taskPart.started, taskPart.ended, taskPart.isLogged, taskPart.description, taskPart.taskId];
+        tx.executeSql(query, queryParams);
+    });
+}
+
+function updateTaskPart(taskPart) {
+    openDB();
+    _db.transaction(function(tx) {
+        var query = "UPDATE "+TABLE_TASK_PART+" SET started=?, ended=?, isLogged = ?, description=?, taskId=? WHERE id=?";
+        var queryParams = [taskPart.started, taskPart.ended, taskPart.isLogged, taskPart.description, taskPart.taskId, taskPart.id];
+        tx.executeSql(query, queryParams);
+    });
+}
+
+function readTaskParts() {
+    openDB();
+    var data = [];
+    _db.readTransaction(function(tx) {
+        var rs = tx.executeSql("SELECT * FROM "+TABLE_TASK_PART);
+        for (var i = 0; i < rs.rows.length; i++) {
+            data[i] = rs.rows.item(i);
+        }
+    });
+    return data;
+}
+
+function readTaskPart(id) {
+    openDB();
+    var item = 0;
+    _db.readTransaction(function(tx) {
+        var rs = tx.executeSql("SELECT * FROM "+TABLE_TASK_PART+" WHERE id=?", id);
+        if (rs.rows.length === 1) {
+            item = rs.rows.item(0);
+        }
+    });
+    return item;
+}
+
+function readTaskPartsForTask(taskId) {
+    openDB();
+    var data = [];
+    _db.readTransaction(function(tx) {
+        var rs = tx.executeSql("SELECT * FROM "+TABLE_TASK_PART+" WHERE taskId=?", taskId);
+        for (var i = 0; i < rs.rows.length; i++) {
+            data[i] = rs.rows.item(i);
+        }
+    });
+    return data;
+}
+
+function removeTaskPart(id) {
+    openDB();
+    _db.transaction(function(tx) {
+        var rs = tx.executeSql("DELETE FROM "+TABLE_TASK_PART+" WHERE id=?", id);
+    });    
 }
