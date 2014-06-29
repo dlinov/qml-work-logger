@@ -55,7 +55,7 @@ Page {
                 switchToPage("ProjectInfoPage.qml", {itemId: model.id});
             }
         }
-        clip: true
+
     }
 
     ScrollDecorator {
@@ -88,7 +88,6 @@ Page {
     }
 
     function refreshDataModel() {
-        Core.openDB();
         projectView.model = 0;
         projectData(projectListModel);
         projectView.model = projectListModel;
