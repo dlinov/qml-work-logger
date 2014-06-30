@@ -1,7 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
 import com.nokia.extras 1.1
-import "js/core.js" as Core
 
 PageStackWindow {
     id: appWindow    

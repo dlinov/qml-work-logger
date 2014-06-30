@@ -72,31 +72,18 @@ var QUERY = {
     SELECT_TASKPARTS: "SELECT * FROM " + TABLE_TASK_PART,
 }
 
-var db = openDatabaseSync(DB_NAME, "", "WorkLogger Database", 64000, function(db) {
-    console.log("database opened");
-    if (db.version === "1.0") {
-        db.transaction(function(tx) { tx.executeSql(QUERY.DROP_TASKPART_TABLE); });
-    }
-    db.changeVersion(db.version, "1.1", function(tx) {
-        createTables();
-    })
-});
-
-function createTables() {
-    db.transaction(function(tx) {
-        tx.executeSql(QUERY.CREATE_PROJECT_TABLE);
-        tx.executeSql(QUERY.CREATE_TASK_TABLE);
-        tx.executeSql(QUERY.CREATE_TASKPART_TABLE);
-    });
-}
-
-function dropTables() {
+var db = openDatabaseSync(DB_NAME, "", "WorkLogger Database", 64000);
+if (db.version === "1.0") {
     db.transaction(function(tx) {
         tx.executeSql(QUERY.DROP_TASKPART_TABLE);
         tx.executeSql(QUERY.DROP_TASK_TABLE);
-        tx.executeSql(QUERY.DROP_PROJECT_TABLE);
     });
 }
+db.changeVersion(db.version, "1.1", function(tx) {
+    tx.executeSql(QUERY.CREATE_PROJECT_TABLE);
+    tx.executeSql(QUERY.CREATE_TASK_TABLE);
+    tx.executeSql(QUERY.CREATE_TASKPART_TABLE);
+});
 
 function insertProject(project) {
     db.transaction(function(tx) {
