@@ -10,14 +10,14 @@ Page {
 
     tools: ToolBarLayout {
         ToolIcon {
-            platformIconId: "toolbar-add"
-            anchors.right: (parent === undefined) ? undefined : parent.right
-            onClicked: addProjectPage.open()
-        }
-        ToolIcon {
             platformIconId: "toolbar-back"
             anchors.left: (parent === undefined) ? undefined : parent.left
             onClicked: pageStack.pop()
+        }
+        ToolIcon {
+            platformIconId: "toolbar-add"
+            anchors.right: (parent === undefined) ? undefined : parent.right
+            onClicked: addProjectPage.open()
         }
     }
 
@@ -49,13 +49,11 @@ Page {
         delegate: ListDelegateEx {
             id: projectDelegate
             title: model.name
-            subTitle: qsTr("id: %1; created: %2; started: %3; finished: %4")
-                .arg(model.id).arg(model.created).arg(model.started).arg(model.finished)
+            subTitle: qsTr("id: %1").arg(model.id)
             onClicked: {
                 switchToPage("ProjectInfoPage.qml", {itemId: model.id});
             }
         }
-
     }
 
     ScrollDecorator {

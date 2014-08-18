@@ -25,7 +25,7 @@ Rectangle {
         anchors.rightMargin: 10
         font { bold: false; family: "Nokia Pure Text Light"; pixelSize: 36; }
         color: "white"
-        text: 'Work Logger'
+        text: "Work Logger"
     }
 
 //    uncomment lines below when global sync mechanism will be implemented

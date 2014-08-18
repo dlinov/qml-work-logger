@@ -143,7 +143,7 @@ Page {
         flickableItem: tasksView
     }
 
-    AddTaskPage {
+    AddTaskSheet {
         id: addTaskPage
         title: qsTr("New task")
         onAccepted: {
