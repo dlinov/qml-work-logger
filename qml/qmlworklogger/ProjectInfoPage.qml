@@ -170,7 +170,5 @@ Page {
         }
     }
 
-    Component.onCompleted: {
-        loadData();
-    }
+    onStatusChanged: if (status === PageStatus.Activating) loadData();
 }

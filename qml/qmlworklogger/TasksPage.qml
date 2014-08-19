@@ -56,9 +56,12 @@ Page {
         onAccepted: {
             Core.insertTask({name: addTaskSheet.taskName, description: addTaskSheet.taskDescription, projectId: addTaskSheet.projectId()});
             projectData(tasksView.model);
-            addProjectSheet.projectName = "";
-            addProjectSheet.projectDescription = "";
-            addProjectSheet.indexInModel = -1;
+            addTaskSheet.taskName = "";
+            addTaskSheet.taskDescription = "";
+        }
+        onRejected: {
+            addTaskSheet.taskName = "";
+            addTaskSheet.taskDescription = "";
         }
     }
 
@@ -75,5 +78,5 @@ Page {
         }
     }
 
-    Component.onCompleted: projectData(tasksView.model)
+    onStatusChanged: if (status === PageStatus.Activating) projectData(tasksListModel)
 }

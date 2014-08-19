@@ -6,6 +6,9 @@ import 'delegates'
 import 'js/core.js' as Core
 
 Page {
+
+    property int itemId: -1
+
     tools: ToolBarLayout {
         ToolIcon {
             platformIconId: "toolbar-back"
@@ -21,8 +24,6 @@ Page {
             }
         }
     }
-
-    property int itemId: -1
 
     PageHeader {
         id: header
@@ -85,13 +86,19 @@ Page {
         Repeater {
             // TODO: task parts
         }
+        Row {
+            Button {
+                id: startLog
+                text: "Start work"
+            }
+        }
     }
 
     Component.onCompleted: {
         var task = Core.readTask(itemId);
         var taskParts = Core.readTaskPartsForTask(itemId);
         title.text = task.name;
-        description.text = task.description;
+        description.text = task.description ? task.description : "";
         created.text = task.created;
     }
 }

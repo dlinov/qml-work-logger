@@ -50,9 +50,7 @@ Page {
             id: projectDelegate
             title: model.name
             subTitle: qsTr("id: %1").arg(model.id)
-            onClicked: {
-                switchToPage("ProjectInfoPage.qml", {itemId: model.id});
-            }
+            onClicked: switchToPage("ProjectInfoPage.qml", {itemId: model.id})
         }
     }
 
@@ -64,7 +62,7 @@ Page {
         id: addProjectPage
         title: qsTr("New project")
         onAccepted: {
-            Core.insertProject({name: addProjectPage.projectName,description: addProjectPage.projectDescription});
+            Core.insertProject({name: addProjectPage.projectName, description: addProjectPage.projectDescription});
             refreshDataModel();
             addProjectPage.projectName = "";
             addProjectPage.projectDescription = "";
@@ -91,7 +89,5 @@ Page {
         projectView.model = projectListModel;
     }
 
-    Component.onCompleted: {
-        refreshDataModel();
-    }
+    onStatusChanged: refreshDataModel()
 }

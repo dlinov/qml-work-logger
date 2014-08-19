@@ -95,14 +95,13 @@ Item {
                 font.weight: listItem.subtitleWeight
                 font.pixelSize: listItem.subtitleSize
                 color: listItem.subtitleColor
-
                 visible: text != ""
             }
         }
     }
+
     Image {
         id: icon
-
         anchors {
             right: parent.right
             rightMargin: UI.MARGIN_XLARGE
