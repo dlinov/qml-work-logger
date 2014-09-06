@@ -23,6 +23,11 @@ Page {
                 pageStack.pop();
             }
         }
+        ToolIcon {
+            platformIconId: "toolbar-view-menu"
+            anchors.right: (parent === undefined) ? undefined : parent.right
+            onClicked: (taskMenu.status === DialogStatus.Closed) ? taskMenu.open() : taskMenu.close()
+        }
     }
 
     PageHeader {
@@ -86,10 +91,14 @@ Page {
         Repeater {
             // TODO: task parts
         }
-        Row {
-            Button {
-                id: startLog
-                text: "Start work"
+    }
+
+    Menu {
+        id: taskMenu
+        visualParent: pageStack
+        MenuLayout {
+            MenuItem {
+                text: qsTr("Start work")
             }
         }
     }

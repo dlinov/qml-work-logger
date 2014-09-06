@@ -31,3 +31,6 @@ Makefile*
 
 *.deb
 *.changes
+
+# Project specific
+qmlworklogger
