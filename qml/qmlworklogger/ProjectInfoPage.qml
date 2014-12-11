@@ -163,10 +163,7 @@ Page {
         labelTasksCount.text = qsTr(tasks.length.toString());
         tasksModel.clear();
         for (var i = 0; i < tasks.length; i++) {
-            tasksModel.append({
-                id: tasks[i].id,
-                name: tasks[i].name
-            });
+            tasksModel.append(tasks[i]);
         }
     }
 

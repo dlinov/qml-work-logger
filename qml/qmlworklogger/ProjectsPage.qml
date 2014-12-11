@@ -33,10 +33,6 @@ Page {
         anchors.fill: parent
     }
 
-    ListModel {
-        id: projectListModel
-    }
-
     ListView {
         id: projectView
         anchors {
@@ -45,11 +41,11 @@ Page {
             left: (parent === undefined) ? undefined : parent.left
             right: (parent === undefined) ? undefined : parent.right
         }
-        model: projectListModel
+        model: ListModel { }
         delegate: ListDelegateEx {
             id: projectDelegate
             title: model.name
-            subTitle: qsTr("id: %1").arg(model.id)
+            subTitle: qsTr("id: %1; hourly rate %2").arg(model.id, model.rate)
             onClicked: switchToPage("ProjectInfoPage.qml", {itemId: model.id})
         }
     }
@@ -62,32 +58,25 @@ Page {
         id: addProjectPage
         title: qsTr("New project")
         onAccepted: {
-            Core.insertProject({name: addProjectPage.projectName, description: addProjectPage.projectDescription});
+            Core.insertProject({name: addProjectPage.projectName, description: addProjectPage.projectDescription, rate: parseDouble(addProjectPage.projectHourlyRate)});
             refreshDataModel();
             addProjectPage.projectName = "";
             addProjectPage.projectDescription = "";
         }
     }
 
-    function projectData(model) {
-        model.clear()
-        var dbData = Core.readProjects();
-        for (var j = 0; j < dbData.length; j++) {
-            model.append({
-                 id: dbData[j].id,
-                 name: dbData[j].name,
-                 created: dbData[j].created,
-                 started: dbData[j].started,
-                 finished: dbData[j].finished
-             });
-        }
-    }
+    onStatusChanged: refreshDataModel()
 
     function refreshDataModel() {
-        projectView.model = 0;
-        projectData(projectListModel);
-        projectView.model = projectListModel;
+        projectData();
+        addProjectPage.projectData();
     }
 
-    onStatusChanged: refreshDataModel()
+    function projectData(model) {
+        projectView.model.clear()
+        var dbData = Core.readProjects();
+        for (var j = 0; j < dbData.length; j++) {
+            projectView.model.append(dbData[j]);
+        }
+    }
 }

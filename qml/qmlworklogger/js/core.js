@@ -33,12 +33,28 @@
 // ---------------------------------------------------------------------------
 
 .pragma library
-var TABLE_PROJECT = "project";
-var TABLE_TASK = "task";
-var TABLE_TASK_PART = "task_part"
-var DB_NAME = "WorkLogger"
+const TABLE_CURRENCY = "currency";
+const TABLE_PROJECT = "project";
+const TABLE_TASK = "task";
+const TABLE_TASK_PART = "task_part"
+const DB_NAME = "WorkLogger"
 
 var QUERY = {
+    CREATE_CURRENCY_TABLE: "\
+        CREATE TABLE IF NOT EXISTS " + TABLE_CURRENCY +
+        "(id INTEGER PRIMARY KEY AUTOINCREMENT, \
+        name TEXT UNIQUE, \
+        shortName TEXT UNIQUE, \
+        symbol TEXT UNIQUE);",
+    FILL_CURRENCY_TABLE: "\
+        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('US Dollar', 'USD', '$');\
+        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Euro', 'EUR', '€');\
+        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Pound sterling', 'GBP', '£');\
+        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Russian Rouble', 'RUR', 'P');\
+        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Belarusian Rouble', 'BYR', 'Br');",
+    DROP_CURRENCY_TABLE: "DROP TABLE IF EXISTS " + TABLE_CURRENCY + ";",
+    SELECT_CURRENCIES: "SELECT * FROM " + TABLE_CURRENCY,
+
     CREATE_PROJECT_TABLE: "\
         CREATE TABLE IF NOT EXISTS " + TABLE_PROJECT + 
         "(id INTEGER PRIMARY KEY AUTOINCREMENT, \
@@ -46,9 +62,13 @@ var QUERY = {
         description TEXT,\
         created DATE,\
         started DATE,\
-        finished DATE);",
+        finished DATE,\
+        rate REAL,\
+        currency INT,\
+        FOREIGN KEY(currency) REFERENCES " + TABLE_CURRENCY + "(id));",
     DROP_PROJECT_TABLE: "DROP TABLE IF EXISTS " + TABLE_PROJECT + ";",
     SELECT_PROJECTS: "SELECT * FROM " + TABLE_PROJECT,
+
     CREATE_TASK_TABLE: "\
         CREATE TABLE IF NOT EXISTS " + TABLE_TASK +
         "(id INTEGER PRIMARY KEY AUTOINCREMENT,\
@@ -59,6 +79,7 @@ var QUERY = {
         FOREIGN KEY(projectId) REFERENCES " + TABLE_PROJECT + "(id));",
     DROP_TASK_TABLE: "DROP TABLE IF EXISTS " + TABLE_TASK + ";",
     SELECT_TASKS: "SELECT * FROM " + TABLE_TASK,
+
     CREATE_TASKPART_TABLE: "\
         CREATE TABLE IF NOT EXISTS " + TABLE_TASK_PART +
         " (id INTEGER PRIMARY KEY AUTOINCREMENT,\
@@ -79,24 +100,44 @@ if (db.version === "1.0") {
         tx.executeSql(QUERY.DROP_TASK_TABLE);
     });
 }
-db.changeVersion(db.version, "1.1", function(tx) {
+if (db.version === "1.1") {
+    db.transaction(function(tx) {
+        tx.executeSql(QUERY.DROP_TASKPART_TABLE);
+        tx.executeSql(QUERY.DROP_TASK_TABLE);
+        tx.executeSql(QUERY.DROP_PROJECT_TABLE);
+    });
+}
+db.changeVersion(db.version, "1.2", function(tx) {
+    tx.executeSql(QUERY.CREATE_CURRENCY_TABLE);
+    tx.executeSql(QUERY.FILL_CURRENCY_TABLE);
     tx.executeSql(QUERY.CREATE_PROJECT_TABLE);
     tx.executeSql(QUERY.CREATE_TASK_TABLE);
     tx.executeSql(QUERY.CREATE_TASKPART_TABLE);
 });
 
+function readCurrencies() {
+    var data = [];
+    db.readTransaction(function(tx) {
+        var rs = tx.executeSql(QUERY.SELECT_CURRENCIES);
+        for (var i = 0; i < rs.rows.length; i++) {
+            data[i] = rs.rows.item(i);
+        }
+    });
+    return data;
+}
+
 function insertProject(project) {
     db.transaction(function(tx) {
-        var query = "INSERT INTO "+TABLE_PROJECT+" (name, description, created, started, finished) VALUES (?, ?, ?, ?, ?)";
-        var queryParams = [project.name, project.description, new Date(), null, null];
+        var query = "INSERT INTO "+TABLE_PROJECT+" (name, description, created, started, finished, rate, currency) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        var queryParams = [project.name, project.description, new Date(), null, null, project.rate, project.currency];
         tx.executeSql(query, queryParams);
     });
 }
 
 function updateProject(project) {
     db.transaction(function(tx) {
-        var query = "UPDATE "+TABLE_PROJECT+" SET name=?, description=?, created=?, started=?, finished=? WHERE id=?";
-        var queryParams = [project.name, project.description, project.created, project.started, project.finished, project.id];
+        var query = "UPDATE "+TABLE_PROJECT+" SET name=?, description=?, created=?, started=?, finished=?, rate=?, currency=? WHERE id=?";
+        var queryParams = [project.name, project.description, project.created, project.started, project.finished, project.rate, project.currency, project.id];
         tx.executeSql(query, queryParams);
     });
 }
