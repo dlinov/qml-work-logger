@@ -24,7 +24,6 @@ Page {
     PageHeader {
         id: pageHeader
         title: "Projects"
-//        visible: !mainPageStack.busy || !theme.inverted
         visible: !appWindow.pageStack.busy || !theme.inverted
     }
 
@@ -45,7 +44,7 @@ Page {
         delegate: ListDelegateEx {
             id: projectDelegate
             title: model.name
-            subTitle: qsTr("id: %1; hourly rate %2").arg(model.id, model.rate)
+            subTitle: qsTr("id: %1; %2%3 per hour").arg(model.id).arg(model.rate).arg(model.currency.symbol)
             onClicked: switchToPage("ProjectInfoPage.qml", {itemId: model.id})
         }
     }
@@ -58,14 +57,20 @@ Page {
         id: addProjectPage
         title: qsTr("New project")
         onAccepted: {
-            Core.insertProject({name: addProjectPage.projectName, description: addProjectPage.projectDescription, rate: parseDouble(addProjectPage.projectHourlyRate)});
+            var newProject = {
+                name: addProjectPage.projectName,
+                description: addProjectPage.projectDescription,
+                rate: parseFloat(addProjectPage.projectHourlyRate),
+                currency: parseInt(addProjectPage.getSelectedCurrency().id)
+            };
+            Core.insertProject(newProject);
             refreshDataModel();
             addProjectPage.projectName = "";
             addProjectPage.projectDescription = "";
         }
     }
 
-    onStatusChanged: refreshDataModel()
+    onStatusChanged: if (status === PageStatus.Activating) { refreshDataModel(); }
 
     function refreshDataModel() {
         projectData();

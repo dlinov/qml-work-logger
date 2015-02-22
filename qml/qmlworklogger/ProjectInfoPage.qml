@@ -50,11 +50,23 @@ Page {
         font.pointSize: 16
     }
 
+    TextField {
+        id: projectHourlyRateInput
+        anchors {
+            top: labelName.bottom
+            right: parent.right
+            left: parent.left
+            margins: 8
+        }
+        text: "0";
+        validator: DoubleValidator {}
+    }
+
     Label {
         id: labelCreatedTitle
         text: qsTr("Created on:")
         anchors {
-            top: (parent === undefined) ? undefined : labelNameTitle.bottom
+            top: (parent === undefined) ? undefined : projectHourlyRateInput.bottom
             left: (parent === undefined) ? undefined : parent.left
         }
         font {
@@ -158,9 +170,10 @@ Page {
         var dbData = Core.readProject(itemId);
         var tasks = Core.readTasksForProject(itemId);
         labelName.text = qsTr(dbData.name);
+        projectHourlyRateInput = dbData.rate.toString;  // TODO: check if toString needed
         labelCreated.text = qsTr(dbData.created);
         labelStarted.text = qsTr(dbData.started);
-        labelTasksCount.text = qsTr(tasks.length.toString());
+        labelTasksCount.text = qsTr(tasks.length.toString());  // TODO: check if toString needed
         tasksModel.clear();
         for (var i = 0; i < tasks.length; i++) {
             tasksModel.append(tasks[i]);

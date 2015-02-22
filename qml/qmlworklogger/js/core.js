@@ -46,13 +46,15 @@ var QUERY = {
         name TEXT UNIQUE, \
         shortName TEXT UNIQUE, \
         symbol TEXT UNIQUE);",
-    FILL_CURRENCY_TABLE: "\
-        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('US Dollar', 'USD', '$');\
-        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Euro', 'EUR', '€');\
-        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Pound sterling', 'GBP', '£');\
-        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Russian Rouble', 'RUR', 'P');\
-        INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Belarusian Rouble', 'BYR', 'Br');",
+    FILL_CURRENCY_TABLE: [
+                             "INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('US Dollar', 'USD', '$');",
+                             "INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Euro', 'EUR', '€');",
+                             "INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Pound sterling', 'GBP', '£');",
+                             "INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Russian Rouble', 'RUR', 'P');",
+                             "INSERT OR IGNORE INTO " + TABLE_CURRENCY + " (name, shortName, symbol) VALUES ('Belarusian Rouble', 'BYR', 'Br');"
+                         ],
     DROP_CURRENCY_TABLE: "DROP TABLE IF EXISTS " + TABLE_CURRENCY + ";",
+    SELECT_ALL_CURRENCIES: "SELECT * FROM " + TABLE_CURRENCY + ";",
     SELECT_CURRENCIES: "SELECT * FROM " + TABLE_CURRENCY,
 
     CREATE_PROJECT_TABLE: "\
@@ -67,6 +69,7 @@ var QUERY = {
         currency INT,\
         FOREIGN KEY(currency) REFERENCES " + TABLE_CURRENCY + "(id));",
     DROP_PROJECT_TABLE: "DROP TABLE IF EXISTS " + TABLE_PROJECT + ";",
+    SELECT_ALL_PROJECTS: "SELECT * FROM " + TABLE_PROJECT + ";",
     SELECT_PROJECTS: "SELECT * FROM " + TABLE_PROJECT,
 
     CREATE_TASK_TABLE: "\
@@ -78,6 +81,7 @@ var QUERY = {
         projectId INTEGER,\
         FOREIGN KEY(projectId) REFERENCES " + TABLE_PROJECT + "(id));",
     DROP_TASK_TABLE: "DROP TABLE IF EXISTS " + TABLE_TASK + ";",
+    SELECT_ALL_TASKS: "SELECT * FROM " + TABLE_TASK + ";",
     SELECT_TASKS: "SELECT * FROM " + TABLE_TASK,
 
     CREATE_TASKPART_TABLE: "\
@@ -90,26 +94,30 @@ var QUERY = {
         taskId INTEGER,\
         FOREIGN KEY(taskId) REFERENCES " + TABLE_TASK + "(id));",
     DROP_TASKPART_TABLE: "DROP TABLE IF EXISTS " + TABLE_TASK_PART + ";",
+    SELECT_ALL_TASKPARTS: "SELECT * FROM " + TABLE_TASK_PART + ";",
     SELECT_TASKPARTS: "SELECT * FROM " + TABLE_TASK_PART,
 }
 
 var db = openDatabaseSync(DB_NAME, "", "WorkLogger Database", 64000);
-if (db.version === "1.0") {
-    db.transaction(function(tx) {
+db.changeVersion(db.version, "1.4", function(tx) {
+    if (db.version === "1.0") {
         tx.executeSql(QUERY.DROP_TASKPART_TABLE);
         tx.executeSql(QUERY.DROP_TASK_TABLE);
-    });
-}
-if (db.version === "1.1") {
-    db.transaction(function(tx) {
+    }
+    if (db.version === "1.1") {
         tx.executeSql(QUERY.DROP_TASKPART_TABLE);
         tx.executeSql(QUERY.DROP_TASK_TABLE);
         tx.executeSql(QUERY.DROP_PROJECT_TABLE);
-    });
-}
-db.changeVersion(db.version, "1.2", function(tx) {
+    }
+    if (db.version === "1.2") {
+        tx.executeSql(QUERY.DROP_TASKPART_TABLE);
+        tx.executeSql(QUERY.DROP_TASK_TABLE);
+        tx.executeSql(QUERY.DROP_PROJECT_TABLE);
+    }
     tx.executeSql(QUERY.CREATE_CURRENCY_TABLE);
-    tx.executeSql(QUERY.FILL_CURRENCY_TABLE);
+    QUERY.FILL_CURRENCY_TABLE.forEach(function(statement, i, arr) {
+        tx.executeSql(statement);
+    });
     tx.executeSql(QUERY.CREATE_PROJECT_TABLE);
     tx.executeSql(QUERY.CREATE_TASK_TABLE);
     tx.executeSql(QUERY.CREATE_TASKPART_TABLE);
@@ -118,12 +126,23 @@ db.changeVersion(db.version, "1.2", function(tx) {
 function readCurrencies() {
     var data = [];
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_CURRENCIES);
+        var rs = tx.executeSql(QUERY.SELECT_ALL_CURRENCIES);
         for (var i = 0; i < rs.rows.length; i++) {
             data[i] = rs.rows.item(i);
         }
     });
     return data;
+}
+
+function readCurrency(id) {
+    var item;
+    db.readTransaction(function(tx) {
+        var rs = tx.executeSql(QUERY.SELECT_CURRENCIES + " WHERE id=?;", id);
+        if (rs.rows.length === 1) {
+           item = rs.rows.item(0);
+        }
+    });
+    return item;
 }
 
 function insertProject(project) {
@@ -144,10 +163,21 @@ function updateProject(project) {
 
 function readProjects() {
     var data = [];
+    var findById = function(arr, id) {
+        for (var i = arr.length - 1; i > -1; i--) {
+            var item = arr[i];
+            if (item.id === id) {
+                return item;
+            }
+        }
+    }
+    var currencies = readCurrencies();
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_PROJECTS);
+        var rs = tx.executeSql(QUERY.SELECT_ALL_PROJECTS);
         for (var i = 0; i < rs.rows.length; i++) {
-            data[i] = rs.rows.item(i);
+            var item = rs.rows.item(i);
+            item.currency = findById(currencies, item.currency);
+            data[i] = item;
         }
     });
     return data;
@@ -156,7 +186,7 @@ function readProjects() {
 function readProject(id) {
     var item = 0;
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_PROJECTS + " WHERE id=?", id);
+        var rs = tx.executeSql(QUERY.SELECT_PROJECTS + " WHERE id=?;", id);
         if (rs.rows.length === 1) {
             item = rs.rows.item(0);
         }
@@ -166,13 +196,13 @@ function readProject(id) {
 
 function removeProject(id) {
     db.transaction(function(tx) {
-        var rs = tx.executeSql("DELETE FROM " + TABLE_PROJECT + " WHERE id=?", id);
+        var rs = tx.executeSql("DELETE FROM " + TABLE_PROJECT + " WHERE id=?;", id);
     });
 }
 
 function insertTask(task) {
     db.transaction(function(tx) {
-        var query = "INSERT INTO " + TABLE_TASK + " (name, description, created, projectId) VALUES (?, ?, ?, ?)";
+        var query = "INSERT INTO " + TABLE_TASK + " (name, description, created, projectId) VALUES (?, ?, ?, ?);";
         var queryParams = [task.name, task.description, new Date(), task.projectId];
         tx.executeSql(query, queryParams);
     })
@@ -180,7 +210,7 @@ function insertTask(task) {
 
 function updateTask(task) {
     db.transaction(function(tx) {
-        var query = "UPDATE " + TABLE_TASK + " SET name=?, description=?, created=?, projectId=? WHERE id=?";
+        var query = "UPDATE " + TABLE_TASK + " SET name=?, description=?, created=?, projectId=? WHERE id=?;";
         var queryParams = [task.name, task.description, task.created, task.projectId, task.id];
         tx.executeSql(query, queryParams);
     });
@@ -189,7 +219,7 @@ function updateTask(task) {
 function readTasks() {
     var data = [];
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_TASKS);
+        var rs = tx.executeSql(QUERY.SELECT_ALL_TASKS);
         for (var i = 0; i < rs.rows.length; i++) {
             data[i] = rs.rows.item(i);
         }
@@ -200,7 +230,7 @@ function readTasks() {
 function readTask(id) {
     var item = 0;
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_TASKS + " WHERE id=?", id);
+        var rs = tx.executeSql(QUERY.SELECT_TASKS + " WHERE id=?;", id);
         if (rs.rows.length === 1) {
             item = rs.rows.item(0);
         }
@@ -211,7 +241,7 @@ function readTask(id) {
 function readTasksForProject(projectId) {
     var data = [];
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql("SELECT * FROM " + TABLE_TASK + " WHERE projectId=?", projectId);
+        var rs = tx.executeSql("SELECT * FROM " + TABLE_TASK + " WHERE projectId=?;", projectId);
         for (var i = 0; i < rs.rows.length; i++) {
            data[i] = rs.rows.item(i);
         }
@@ -222,14 +252,14 @@ function readTasksForProject(projectId) {
 function removeTask(id) {
     // TODO: remove all task parts
     db.transaction(function(tx) {
-        var rs = tx.executeSql("DELETE FROM " + TABLE_TASK + " WHERE id=?", id);
+        var rs = tx.executeSql("DELETE FROM " + TABLE_TASK + " WHERE id=?;", id);
     });
 }
 
 function insertTaskPart(taskPart) {
     db.transaction(function(fx) {
         var query = "INSERT INTO " + TABLE_TASK_PART + " (started, ended, isLogged, description, taskId) \
-VALUES (?, ?, ?, ?, ?)";
+VALUES (?, ?, ?, ?, ?);";
         var queryParams = [taskPart.started, taskPart.ended, taskPart.isLogged, taskPart.description, taskPart.taskId];
         tx.executeSql(query, queryParams);
     });
@@ -237,7 +267,7 @@ VALUES (?, ?, ?, ?, ?)";
 
 function updateTaskPart(taskPart) {
     db.transaction(function(tx) {
-        var query = "UPDATE " + TABLE_TASK_PART + " SET started=?, ended=?, isLogged = ?, description=?, taskId=? WHERE id=?";
+        var query = "UPDATE " + TABLE_TASK_PART + " SET started=?, ended=?, isLogged = ?, description=?, taskId=? WHERE id=?;";
         var queryParams = [taskPart.started, taskPart.ended, taskPart.isLogged, taskPart.description, taskPart.taskId, taskPart.id];
         tx.executeSql(query, queryParams);
     });
@@ -246,7 +276,7 @@ function updateTaskPart(taskPart) {
 function readTaskParts() {
     var data = [];
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_TASKPARTS);
+        var rs = tx.executeSql(QUERY.SELECT_ALL_TASKPARTS);
         for (var i = 0; i < rs.rows.length; i++) {
             data[i] = rs.rows.item(i);
         }
@@ -257,7 +287,7 @@ function readTaskParts() {
 function readTaskPart(id) {
     var item = 0;
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_TASKPARTS + " WHERE id=?", id);
+        var rs = tx.executeSql(QUERY.SELECT_TASKPARTS + " WHERE id=?;", id);
         if (rs.rows.length === 1) {
             item = rs.rows.item(0);
         }
@@ -268,7 +298,7 @@ function readTaskPart(id) {
 function readTaskPartsForTask(taskId) {
     var data = [];
     db.readTransaction(function(tx) {
-        var rs = tx.executeSql(QUERY.SELECT_TASKPARTS + " WHERE taskId=?", taskId);
+        var rs = tx.executeSql(QUERY.SELECT_TASKPARTS + " WHERE taskId=?;", taskId);
         for (var i = 0; i < rs.rows.length; i++) {
             data[i] = rs.rows.item(i);
         }
@@ -278,6 +308,6 @@ function readTaskPartsForTask(taskId) {
 
 function removeTaskPart(id) {
     db.transaction(function(tx) {
-        var rs = tx.executeSql("DELETE FROM " + TABLE_TASK_PART + " WHERE id=?", id);
+        var rs = tx.executeSql("DELETE FROM " + TABLE_TASK_PART + " WHERE id=?;", id);
     });
 }

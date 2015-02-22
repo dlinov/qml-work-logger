@@ -92,6 +92,7 @@ Sheet {
                 onAccepted: {
                     currencyButton.text = currencyCombobox.model.get(currencyCombobox.selectedIndex).name
                 }
+                onModelChanged: { console.log('currency list refreshed'); }
             }
         }
 
@@ -118,10 +119,14 @@ Sheet {
     }
 
     function projectData() {
-        currencyCombobox.model.clear()
+        currencyCombobox.model.clear();
         var dbData = Core.readCurrencies();
         for (var j = 0; j < dbData.length; j++) {
             currencyCombobox.model.append(dbData[j]);
         }
+    }
+
+    function getSelectedCurrency() {
+        return currencyCombobox.model.get(currencyCombobox.selectedIndex);
     }
 }
